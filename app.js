@@ -1,13 +1,13 @@
 // ================================
-// Weekly Fridge - app.js (full)
+// Weekly Fridge - app.js (FULL PAGE DRAG)
 // Admin-only drag + Google Sheets CSV + JSON fallback
+// Positions are % of the full stage => responsive scaling on mobile
 // ================================
 
-const doorLeft  = document.getElementById("doorLeft");
-const doorRight = document.getElementById("doorRight");
+const stage = document.getElementById("stage");
 
-const overlay  = document.getElementById("overlay");
-const closeBtn = document.getElementById("closeBtn");
+const overlay   = document.getElementById("overlay");
+const closeBtn  = document.getElementById("closeBtn");
 const weekLabel = document.getElementById("weekLabel");
 
 const mTag   = document.getElementById("mTag");
@@ -17,14 +17,13 @@ const mLink  = document.getElementById("mLink");
 const mDue   = document.getElementById("mDue");
 const modalNote = document.getElementById("modalNote");
 
-// 1) ΒΑΛΕ ΕΔΩ το Google Sheets "Publish to web" CSV link όταν είσαι έτοιμος.
+// 1) Βάλε εδώ το Google Sheets "Publish to web" CSV link όταν είσαι έτοιμος.
 //    Αν μείνει κενό ("") θα διαβάζει από updates.json
-const SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRfr3ZWLi62xLMAztUuTQCxkXxukKdPRsiStB54AKzvTYiiqyZXke3k55IYdPyFYxI8zfdCoc3rHQzO/pub?output=csv";
+const SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/16bjmF8PDV6K_pA3wn2v9NOdWTh8zsnvbPLHRPe_7RDE/edit?gid=0#gid=0";
 
 // 2) Admin mode (μόνο εσύ) - άλλαξε το secret
-const ADMIN_SECRET = "Alogomiga";
+const ADMIN_SECRET = "Alogomiga"; // άλλαξέ το σε κάτι πιο long όταν θες
 
-// Χρώματα post-it
 const COLORS = {
   meeting: "#ffe88a",
   sales:   "#b7f7c7",
@@ -34,7 +33,7 @@ const COLORS = {
 };
 
 // Storage key για drag θέσεις
-const STORAGE_KEY = "weekly_fridge_layout_v1";
+const STORAGE_KEY = "weekly_fridge_layout_page_v1";
 
 // Θα κρατάμε τα loaded data για export
 let DATA = null;
@@ -44,9 +43,7 @@ let DATA = null;
 // --------------------
 function isAdmin() {
   const url = new URL(window.location.href);
-  const admin = url.searchParams.get("admin") === "1";
-  const key = url.searchParams.get("key") === ADMIN_SECRET;
-  return admin && key;
+  return url.searchParams.get("admin") === "1" && url.searchParams.get("key") === ADMIN_SECRET;
 }
 const ADMIN = isAdmin();
 
@@ -54,16 +51,13 @@ const ADMIN = isAdmin();
 // LocalStorage helpers
 // --------------------
 function loadLayoutOverrides(){
-  try {
-    return JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}");
-  } catch {
-    return {};
-  }
+  try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}"); }
+  catch { return {}; }
 }
 
-function saveLayoutOverride(id, door, pos){
+function saveLayoutOverride(id, pos){
   const overrides = loadLayoutOverrides();
-  overrides[id] = { door, pos };
+  overrides[id] = { pos };
   localStorage.setItem(STORAGE_KEY, JSON.stringify(overrides));
 }
 
@@ -72,11 +66,7 @@ function applyOverrides(data){
   const items = (data.items || []).map(it => {
     const ov = overrides[it.id];
     if(!ov) return it;
-    return {
-      ...it,
-      door: ov.door || it.door,
-      pos: { ...(it.pos || {}), ...(ov.pos || {}) }
-    };
+    return { ...it, pos: { ...(it.pos || {}), ...(ov.pos || {}) } };
   });
   return { ...data, items };
 }
@@ -115,21 +105,21 @@ function closeModal(){
 // --------------------
 function clamp(n, min, max){ return Math.max(min, Math.min(max, n)); }
 
-function pointerToDoorPercent(e, doorEl){
-  const rect = doorEl.getBoundingClientRect();
+// Full page (stage) percent: NO LIMITS (but we’ll keep a very soft clamp to avoid NaN)
+function pointerToStagePercent(e){
+  const rect = stage.getBoundingClientRect();
   const px = e.clientX - rect.left;
   const py = e.clientY - rect.top;
 
   const x = (px / rect.width) * 100;
   const y = (py / rect.height) * 100;
 
-  // επιτρέπουμε έξοδο ώστε το post-it να "κολλάει" στις άκρες
+  // no "real" restriction; just avoid infinities if something weird happens
   return {
-    x: clamp(x, -40, 140),
-    y: clamp(y, -40, 140)
+    x: clamp(x, -5000, 5000),
+    y: clamp(y, -5000, 5000)
   };
 }
-
 
 // --------------------
 // CSV parsing (Google Sheets publish CSV)
@@ -174,6 +164,7 @@ function csvToItems(csvText){
     .filter(r => r.some(cell => (cell || "").trim() !== ""))
     .map(r => ({
       id: pick(r, "id"),
+      // door ignored now (free drag). Keep for compatibility:
       door: pick(r, "door") || "left",
       type: pick(r, "type") || "meeting",
       tagLabel: pick(r, "tagLabel"),
@@ -183,29 +174,29 @@ function csvToItems(csvText){
       due: pick(r, "due"),
       link: pick(r, "link"),
       body: (r[idx("body")] ?? "").replace(/\\n/g, "\n"),
+      // now x/y are stage% (whole page)
       pos: { x: num(r,"x",50), y: num(r,"y",50), rot: num(r,"rot",0) }
     }))
-    // basic sanity: keep only items with id
     .filter(it => it.id);
 }
 
 // --------------------
 // Create Note element
 // --------------------
-function makeNote(item, doorEl){
+function makeNote(item){
   const el = document.createElement("div");
   el.className = "note";
   el.tabIndex = 0;
 
   el.dataset.id = item.id || "";
-  el.dataset.door = item.door || "left";
 
   el.style.background = COLORS[item.type] || "#ffe88a";
 
-  const x = item.pos?.x ?? 10;
-  const y = item.pos?.y ?? 10;
+  const x = item.pos?.x ?? 50;
+  const y = item.pos?.y ?? 50;
   const rot = item.pos?.rot ?? 0;
 
+  // IMPORTANT: left/top are % of stage -> responsive scaling
   el.style.left = `${x}%`;
   el.style.top  = `${y}%`;
   el.style.setProperty("--rot", `${rot}deg`);
@@ -221,19 +212,21 @@ function makeNote(item, doorEl){
     </div>
   `;
 
-  // --- Admin-only drag ---
+  // Admin-only drag
   if (ADMIN) {
     let dragging = false;
     let moved = false;
     let startX = 0, startY = 0;
 
     el.addEventListener("pointerdown", (e) => {
-      e.preventDefault();
+      e.preventDefault();               // helps on touch/scroll
       el.setPointerCapture(e.pointerId);
+
       dragging = true;
       moved = false;
       startX = e.clientX;
       startY = e.clientY;
+
       el.classList.add("dragging");
     });
 
@@ -244,34 +237,36 @@ function makeNote(item, doorEl){
         moved = true;
       }
 
-      const p = pointerToDoorPercent(e, doorEl);
+      const p = pointerToStagePercent(e);
       el.style.left = `${p.x}%`;
       el.style.top  = `${p.y}%`;
     });
 
     el.addEventListener("pointerup", (e) => {
       if(!dragging) return;
+
       dragging = false;
       el.classList.remove("dragging");
 
-      const p = pointerToDoorPercent(e, doorEl);
+      const p = pointerToStagePercent(e);
       const rotNow = item.pos?.rot ?? 0;
 
       if (item.id) {
-        saveLayoutOverride(item.id, item.door, { x: p.x, y: p.y, rot: rotNow });
+        saveLayoutOverride(item.id, { x: p.x, y: p.y, rot: rotNow });
       }
 
-      // click (χωρίς drag) -> open
+      // click (without drag) -> open
       if(!moved){
         openModal(item);
       }
     });
+
   } else {
-    // Viewers: click μόνο
+    // viewers: click only
     el.addEventListener("click", () => openModal(item));
   }
 
-  // Keyboard open
+  // keyboard open
   el.addEventListener("keydown", (e) => {
     if(e.key === "Enter" || e.key === " "){
       e.preventDefault();
@@ -289,7 +284,7 @@ function exportLayoutToClipboard(){
   if(!DATA) return;
   const merged = JSON.stringify(DATA, null, 2);
   navigator.clipboard.writeText(merged)
-    .then(() => alert("✅ Έγινε αντιγραφή του updates.json (με τις νέες θέσεις) στο clipboard."))
+    .then(() => alert("✅ Αντιγράφηκε το merged JSON στο clipboard (με τις νέες θέσεις)."))
     .catch(() => alert("❌ Δεν μπόρεσα να γράψω στο clipboard."));
 }
 
@@ -322,13 +317,12 @@ async function init(){
 
   weekLabel.textContent = data.weekLabel ?? "—";
 
-  doorLeft.innerHTML = "";
-  doorRight.innerHTML = "";
+  // Remove all old notes (we only remove .note elements, not the rest of the UI)
+  stage.querySelectorAll(".note").forEach(n => n.remove());
 
   (data.items ?? []).forEach((item) => {
-    const doorEl = item.door === "right" ? doorRight : doorLeft;
-    const note = makeNote(item, doorEl);
-    doorEl.appendChild(note);
+    const note = makeNote(item);
+    stage.appendChild(note);
   });
 
   // Admin helper: Ctrl/Cmd+E export merged JSON
@@ -340,7 +334,7 @@ async function init(){
   });
 
   if (ADMIN) {
-    console.log("ADMIN MODE ON ✅");
+    console.log("ADMIN MODE ON ✅ (free-drag full page)");
   }
 }
 
@@ -353,7 +347,3 @@ document.addEventListener("keydown", (e) => { if(e.key === "Escape") closeModal(
 
 // Start
 init();
-
-
-
-
