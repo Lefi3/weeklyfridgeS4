@@ -198,11 +198,8 @@ body{
   -webkit-user-select: none;
   user-select: none;
 }
-.door{
-  outline: 2px dashed rgba(255,0,0,.8);
-  background: rgba(255,0,0,.08);
-  pointer-events: auto; /* προσωρινά για να βλέπεις/κλικάρεις το κουτί */
-}
+
+
 
 
 
