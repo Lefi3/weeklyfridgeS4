@@ -19,7 +19,7 @@ const modalNote = document.getElementById("modalNote");
 
 // 1) Βάλε εδώ το Google Sheets "Publish to web" CSV link όταν είσαι έτοιμος.
 //    Αν μείνει κενό ("") θα διαβάζει από updates.json
-const SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/16bjmF8PDV6K_pA3wn2v9NOdWTh8zsnvbPLHRPe_7RDE/edit?gid=0#gid=0";
+const SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRfr3ZWLi62xLMAztUuTQCxkXxukKdPRsiStB54AKzvTYiiqyZXke3k55IYdPyFYxI8zfdCoc3rHQzO/pubhtml";
 
 // 2) Admin mode (μόνο εσύ) - άλλαξε το secret
 const ADMIN_SECRET = "Alogomiga"; // άλλαξέ το σε κάτι πιο long όταν θες
@@ -347,3 +347,4 @@ document.addEventListener("keydown", (e) => { if(e.key === "Escape") closeModal(
 
 // Start
 init();
+
