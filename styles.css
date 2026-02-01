@@ -1,205 +1,284 @@
-:root{
-  --shadow: 0 12px 40px rgba(0,0,0,.25);
-  --radius: 18px;
-  --glass: rgba(255,255,255,.08);
-  --text: rgba(255,255,255,.92);
-  --muted: rgba(255,255,255,.72);
-}
-*{ box-sizing:border-box; }
-body{
-  margin:0;
-  font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
-  background:#0b0f14;
-  color:var(--text);
-  overflow-x:hidden;
-}
-.stage{
-  min-height:100vh;
-  position:relative;
-  padding:22px 22px 56px;
-  background:
-    linear-gradient(180deg, rgba(0,0,0,.32), rgba(0,0,0,.55)),
-    url("fridge-bg-1920x1080.png");
-  background-size:cover;
-  background-position:center;
-}
-.topbar{
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-  gap:16px;
-  margin-bottom:18px;
-  backdrop-filter: blur(10px);
-  background: var(--glass);
-  border: 1px solid rgba(255,255,255,.10);
-  border-radius: var(--radius);
-  padding: 12px 14px;
-  max-width: 1180px;
-  margin-left:auto;
-  margin-right:auto;
-}
-.brand{ display:flex; align-items:center; gap:12px; }
-.dot{
-  width:12px; height:12px; border-radius:999px;
-  background: #8ef2b5;
-  box-shadow: 0 0 0 6px rgba(142,242,181,.18);
-}
-.title{ font-weight:800; letter-spacing:.2px; }
-.subtitle{ font-size:13px; color:var(--muted); margin-top:2px; }
-.meta .pill{
-  font-size:12px;
-  padding:6px 10px;
-  border-radius:999px;
-  background: rgba(255,255,255,.12);
-  border: 1px solid rgba(255,255,255,.14);
+/* ================================
+   Weekly Fridge – styles.css
+   Full page stage + free drag notes
+   Responsive / mobile friendly
+================================ */
+
+/* Reset */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
 }
 
-.fridgeArea{
-  position:relative;
-  max-width: 1180px;
-  margin: 0 auto;
-  height: calc(100vh - 140px);
-  min-height: 560px;
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+               Roboto, Helvetica, Arial, sans-serif;
+  background: #0f172a; /* fallback */
+  overflow: hidden;   /* important για free drag */
 }
 
-/* ΡΥΘΜΙΖΕΙΣ ΠΟΡΤΩΝ (αν χρειαστεί αργότερα) */
-.door{
-  position:absolute;
-  top: 8%;
-  height: 54%;
-  width: 18.8%;
-  pointer-events: none;
-}
-.door-left  { left: 53.5%; }
-.door-right { left: 72.8%; }
+/* ================================
+   STAGE (ολόκληρη η σελίδα)
+================================ */
+#stage {
+  position: relative;
+  width: 100vw;
+  height: 100vh;
 
-.note{
-  position:absolute;
-  width: 170px;
-  min-height: 120px;
-  border-radius: 14px;
-  padding: 12px 12px 10px;
-  box-shadow: var(--shadow);
-  border:1px solid rgba(0,0,0,.15);
-  cursor:pointer;
-  user-select:none;
+  /* background εικόνα ψυγείου */
+  background-image: url("fridge-bg-1920x1080.png");
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+
+  user-select: none;
+  overflow: hidden;
+}
+
+/* ================================
+   TOP BAR
+================================ */
+.topbar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 50;
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  padding: 14px 20px;
+
+  background: linear-gradient(
+    to bottom,
+    rgba(0,0,0,0.55),
+    rgba(0,0,0,0.0)
+  );
+  color: #fff;
+}
+
+.weekLabel {
+  font-weight: 800;
+  font-size: 16px;
+  letter-spacing: 0.3px;
+}
+
+.topbar .meta {
+  font-size: 13px;
+  opacity: 0.8;
+}
+
+/* ================================
+   POST-IT NOTE
+================================ */
+.note {
+  position: absolute;
+  width: 180px;
+  min-height: 140px;
+
+  padding: 14px 14px 12px 14px;
+  border-radius: 10px;
+
+  box-shadow:
+    0 12px 25px rgba(0,0,0,0.28),
+    inset 0 1px 0 rgba(255,255,255,0.45);
+
+  color: #1f2937;
+  cursor: grab;
+
   transform: rotate(var(--rot, 0deg));
-  transition: transform .18s ease, box-shadow .18s ease, filter .18s ease;
-  pointer-events:auto;
-}
-.note:hover{
-  box-shadow: 0 18px 60px rgba(0,0,0,.35);
-  filter: brightness(1.04);
-  transform: rotate(var(--rot, 0deg)) translateY(-3px);
-}
-.note .smallTag{ font-size:12px; opacity:.78; margin-bottom:8px; }
-.note .headline{ font-weight:800; line-height:1.15; color: rgba(0,0,0,.82); }
-.note .tiny{
-  margin-top:8px;
-  font-size:12px;
-  opacity:.85;
-  color: rgba(0,0,0,.75);
-  display:flex;
-  justify-content:space-between;
-  gap:10px;
-}
-.hint{
-  position:fixed;
-  left:0; right:0; bottom:18px;
-  text-align:center;
-  font-size:12px;
-  color: rgba(255,255,255,.75);
+  transition: box-shadow 0.15s ease, transform 0.15s ease;
+
+  touch-action: none; /* ΣΗΜΑΝΤΙΚΟ για drag σε mobile */
 }
 
-/* Modal */
-.overlay{
-  position:fixed;
-  inset:0;
-  background: rgba(0,0,0,.55);
+.note:active {
+  cursor: grabbing;
+}
+
+.note.dragging {
+  z-index: 1000;
+  box-shadow:
+    0 20px 45px rgba(0,0,0,0.4),
+    inset 0 1px 0 rgba(255,255,255,0.45);
+}
+
+/* μικρό tag επάνω */
+.note .smallTag {
+  font-size: 11px;
+  font-weight: 700;
+  margin-bottom: 6px;
+  opacity: 0.85;
+}
+
+/* headline */
+.note .headline {
+  font-size: 16px;
+  font-weight: 800;
+  line-height: 1.15;
+  margin-bottom: 8px;
+}
+
+/* footer info */
+.note .tiny {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+
+  font-size: 12px;
+  font-weight: 600;
+  opacity: 0.85;
+}
+
+/* hover effect */
+.note:hover {
+  transform: rotate(var(--rot, 0deg)) scale(1.03);
+}
+
+/* ================================
+   MODAL OVERLAY
+================================ */
+#overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  background: rgba(15, 23, 42, 0.65);
   backdrop-filter: blur(6px);
-  display:none;
-  align-items:center;
-  justify-content:center;
-  padding:18px;
-}
-.overlay.open{ display:flex; }
-.modal{ width:min(720px, 96vw); border-radius: 22px; position:relative; }
-.close{
-  position:absolute;
-  right: 10px;
-  top: -46px;
-  background: rgba(255,255,255,.14);
-  color: var(--text);
-  border: 1px solid rgba(255,255,255,.20);
-  border-radius: 999px;
-  padding: 8px 12px;
-  cursor:pointer;
-}
-.modalNote{
-  border-radius: 18px;
-  padding: 18px 18px 14px;
-  box-shadow: 0 26px 90px rgba(0,0,0,.45);
-  border:1px solid rgba(0,0,0,.14);
-  transform: scale(.92);
-  opacity: 0;
-  animation: pop .16s ease forwards;
-}
-@keyframes pop{ to{ transform: scale(1); opacity: 1; } }
 
-.noteHeader{ display:flex; flex-direction:column; gap:8px; }
-.tag{
-  display:inline-flex; width:fit-content;
-  font-size:12px; padding:6px 10px; border-radius:999px;
-  background: rgba(0,0,0,.12);
-  color: rgba(0,0,0,.78);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.25s ease;
 }
-#mTitle{ margin:0; font-size: 22px; letter-spacing:.2px; color: rgba(0,0,0,.86); }
-.noteBody{
-  margin-top: 12px;
-  font-size: 14px;
-  line-height: 1.55;
-  color: rgba(0,0,0,.82);
+
+#overlay.open {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* ================================
+   MODAL NOTE
+================================ */
+#modalNote {
+  width: min(92vw, 420px);
+  border-radius: 14px;
+
+  padding: 22px 22px 18px 22px;
+
+  box-shadow:
+    0 30px 60px rgba(0,0,0,0.45),
+    inset 0 1px 0 rgba(255,255,255,0.45);
+
+  color: #1f2937;
+  position: relative;
+}
+
+#modalNote .smallTag {
+  font-size: 12px;
+  font-weight: 800;
+  margin-bottom: 8px;
+}
+
+#modalNote h2 {
+  margin: 0 0 12px 0;
+  font-size: 22px;
+  line-height: 1.2;
+}
+
+#modalNote p {
+  margin: 0 0 14px 0;
+  font-size: 15px;
+  line-height: 1.45;
   white-space: pre-wrap;
 }
-.noteFooter{
-  margin-top: 14px;
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-  gap:12px;
-}
-.link{
-  display:inline-flex;
-  padding:8px 12px;
-  border-radius:999px;
-  background: rgba(255,255,255,.45);
-  border: 1px solid rgba(0,0,0,.10);
-  color: rgba(0,0,0,.82);
-  text-decoration:none;
-  font-weight:750;
-}
-.due{ font-size: 12px; color: rgba(0,0,0,.65); }
 
-@media (max-width: 820px){
-  .note{ width: 150px; min-height: 110px; }
-  .door{ top: 10%; height: 50%; width: 20%; }
-  .door-left{ left: 49%; }
-  .door-right{ left: 71%; }
-}
-.note.dragging{
-  cursor: grabbing;
-  box-shadow: 0 22px 70px rgba(0,0,0,.45);
-  filter: brightness(1.05);
-  z-index: 50;
+/* footer modal */
+.modalFooter {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 10px;
 }
 
-/* Προαιρετικό: να μην "πιάνει" selection text στο drag */
-.note, .note *{
-  -webkit-user-select: none;
-  user-select: none;
+.modalFooter .due {
+  font-size: 13px;
+  font-weight: 700;
+  opacity: 0.85;
 }
 
+.modalFooter a {
+  font-size: 14px;
+  font-weight: 800;
+  color: #0f172a;
+  text-decoration: none;
 
+  padding: 8px 14px;
+  border-radius: 999px;
+  background: rgba(255,255,255,0.6);
+}
 
+.modalFooter a:hover {
+  background: rgba(255,255,255,0.8);
+}
 
+/* close button */
+#closeBtn {
+  position: absolute;
+  top: 12px;
+  right: 12px;
 
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+
+  border: none;
+  cursor: pointer;
+
+  background: rgba(255,255,255,0.55);
+  font-size: 18px;
+  font-weight: 900;
+}
+
+#closeBtn:hover {
+  background: rgba(255,255,255,0.8);
+}
+
+/* ================================
+   RESPONSIVE TWEAKS
+================================ */
+@media (max-width: 768px) {
+  .note {
+    width: 150px;
+    min-height: 120px;
+    padding: 12px;
+  }
+
+  .note .headline {
+    font-size: 14px;
+  }
+
+  .topbar {
+    padding: 12px 14px;
+  }
+
+  .weekLabel {
+    font-size: 14px;
+  }
+}
+
+@media (max-width: 420px) {
+  .note {
+    width: 135px;
+  }
+}
