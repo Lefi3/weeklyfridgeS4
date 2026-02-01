@@ -119,10 +119,17 @@ function pointerToDoorPercent(e, doorEl){
   const rect = doorEl.getBoundingClientRect();
   const px = e.clientX - rect.left;
   const py = e.clientY - rect.top;
+
   const x = (px / rect.width) * 100;
   const y = (py / rect.height) * 100;
-  return { x: clamp(x, 0, 100), y: clamp(y, 0, 100) };
+
+  // επιτρέπουμε έξοδο ώστε το post-it να "κολλάει" στις άκρες
+  return {
+    x: clamp(x, -10, 110),
+    y: clamp(y, -10, 110)
+  };
 }
+
 
 // --------------------
 // CSV parsing (Google Sheets publish CSV)
@@ -346,5 +353,6 @@ document.addEventListener("keydown", (e) => { if(e.key === "Escape") closeModal(
 
 // Start
 init();
+
 
 
