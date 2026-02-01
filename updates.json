@@ -2,7 +2,7 @@
   "weekLabel": "ΕΒΔΟΜΑΔΑ 05 | 03–09 ΦΕΒ",
   "items": [
     {
-      "id": "meet_tue",
+      "id": "1",
       "door": "left",
       "type": "meeting",
       "tagLabel": "🟨 Meetings",
@@ -19,7 +19,7 @@
       }
     },
     {
-      "id": "rts",
+      "id": "2",
       "door": "left",
       "type": "sales",
       "tagLabel": "🟩 Ακίνητα",
@@ -36,7 +36,7 @@
       }
     },
     {
-      "id": "kpis",
+      "id": "3",
       "door": "left",
       "type": "update",
       "tagLabel": "🟦 Updates",
@@ -53,7 +53,7 @@
       }
     },
     {
-      "id": "legal_docs",
+      "id": "4",
       "door": "right",
       "type": "urgent",
       "tagLabel": "🟥 Urgent",
@@ -70,7 +70,7 @@
       }
     },
     {
-      "id": "office_note",
+      "id": "5",
       "door": "right",
       "type": "fyi",
       "tagLabel": "🟪 FYI",
@@ -87,7 +87,7 @@
       }
     },
     {
-      "id": "sales_sync",
+      "id": "6",
       "door": "right",
       "type": "meeting",
       "tagLabel": "🟨 Meetings",
@@ -105,6 +105,7 @@
     }
   ]
 }
+
 
 
 
