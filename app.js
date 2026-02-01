@@ -22,7 +22,7 @@ const modalNote = document.getElementById("modalNote");
 const SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRfr3ZWLi62xLMAztUuTQCxkXxukKdPRsiStB54AKzvTYiiqyZXke3k55IYdPyFYxI8zfdCoc3rHQzO/pub?output=csv";
 
 // 2) Admin mode (μόνο εσύ) - άλλαξε το secret
-const ADMIN_SECRET = "MYSECRET";
+const ADMIN_SECRET = "Alogomiga";
 
 // Χρώματα post-it
 const COLORS = {
@@ -346,4 +346,5 @@ document.addEventListener("keydown", (e) => { if(e.key === "Escape") closeModal(
 
 // Start
 init();
+
 
