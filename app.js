@@ -125,8 +125,8 @@ function pointerToDoorPercent(e, doorEl){
 
   // επιτρέπουμε έξοδο ώστε το post-it να "κολλάει" στις άκρες
   return {
-    x: clamp(x, -10, 110),
-    y: clamp(y, -10, 110)
+    x: clamp(x, -40, 140),
+    y: clamp(y, -40, 140)
   };
 }
 
@@ -353,6 +353,7 @@ document.addEventListener("keydown", (e) => { if(e.key === "Escape") closeModal(
 
 // Start
 init();
+
 
 
 
