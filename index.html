@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="el">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Το Ψυγείο της Εβδομάδας</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <main class="stage" id="stage" aria-label="Το Ψυγείο της Εβδομάδας">
+    <header class="topbar">
+      <div class="brand">
+        <span class="dot"></span>
+        <div>
+          <div class="title">Το Ψυγείο της Εβδομάδας</div>
+          <div class="subtitle" id="weekLabel">—</div>
+        </div>
+      </div>
+      <div class="meta">
+        <span class="pill">Εσωτερική χρήση</span>
+      </div>
+    </header>
+
+    <section class="fridgeArea" aria-label="Post-it πάνω στο ψυγείο">
+      <div class="door door-left" id="doorLeft"></div>
+      <div class="door door-right" id="doorRight"></div>
+    </section>
+
+    <div class="hint">Tip: κλικ σε post-it για zoom • Esc για κλείσιμο</div>
+  </main>
+
+  <div class="overlay" id="overlay" aria-hidden="true">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="mTitle">
+      <button class="close" id="closeBtn" aria-label="Κλείσιμο">✕</button>
+
+      <div class="modalNote" id="modalNote">
+        <div class="noteHeader">
+          <div class="tag" id="mTag"></div>
+          <h2 id="mTitle"></h2>
+        </div>
+        <div class="noteBody" id="mBody"></div>
+        <div class="noteFooter">
+          <a class="link" id="mLink" target="_blank" rel="noopener">Άνοιγμα link</a>
+          <span class="due" id="mDue"></span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

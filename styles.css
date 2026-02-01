@@ -1,0 +1,201 @@
+:root{
+  --shadow: 0 12px 40px rgba(0,0,0,.25);
+  --radius: 18px;
+  --glass: rgba(255,255,255,.08);
+  --text: rgba(255,255,255,.92);
+  --muted: rgba(255,255,255,.72);
+}
+*{ box-sizing:border-box; }
+body{
+  margin:0;
+  font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
+  background:#0b0f14;
+  color:var(--text);
+  overflow-x:hidden;
+}
+.stage{
+  min-height:100vh;
+  position:relative;
+  padding:22px 22px 56px;
+  background:
+    linear-gradient(180deg, rgba(0,0,0,.32), rgba(0,0,0,.55)),
+    url("fridge-bg-1920x1080.png");
+  background-size:cover;
+  background-position:center;
+}
+.topbar{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:16px;
+  margin-bottom:18px;
+  backdrop-filter: blur(10px);
+  background: var(--glass);
+  border: 1px solid rgba(255,255,255,.10);
+  border-radius: var(--radius);
+  padding: 12px 14px;
+  max-width: 1180px;
+  margin-left:auto;
+  margin-right:auto;
+}
+.brand{ display:flex; align-items:center; gap:12px; }
+.dot{
+  width:12px; height:12px; border-radius:999px;
+  background: #8ef2b5;
+  box-shadow: 0 0 0 6px rgba(142,242,181,.18);
+}
+.title{ font-weight:800; letter-spacing:.2px; }
+.subtitle{ font-size:13px; color:var(--muted); margin-top:2px; }
+.meta .pill{
+  font-size:12px;
+  padding:6px 10px;
+  border-radius:999px;
+  background: rgba(255,255,255,.12);
+  border: 1px solid rgba(255,255,255,.14);
+}
+
+.fridgeArea{
+  position:relative;
+  max-width: 1180px;
+  margin: 0 auto;
+  height: calc(100vh - 140px);
+  min-height: 560px;
+}
+
+/* ΡΥΘΜΙΖΕΙΣ ΠΟΡΤΩΝ (αν χρειαστεί αργότερα) */
+.door{
+  position:absolute;
+  top: 8%;
+  height: 54%;
+  width: 18.8%;
+  pointer-events: none;
+}
+.door-left  { left: 53.5%; }
+.door-right { left: 72.8%; }
+
+.note{
+  position:absolute;
+  width: 170px;
+  min-height: 120px;
+  border-radius: 14px;
+  padding: 12px 12px 10px;
+  box-shadow: var(--shadow);
+  border:1px solid rgba(0,0,0,.15);
+  cursor:pointer;
+  user-select:none;
+  transform: rotate(var(--rot, 0deg));
+  transition: transform .18s ease, box-shadow .18s ease, filter .18s ease;
+  pointer-events:auto;
+}
+.note:hover{
+  box-shadow: 0 18px 60px rgba(0,0,0,.35);
+  filter: brightness(1.04);
+  transform: rotate(var(--rot, 0deg)) translateY(-3px);
+}
+.note .smallTag{ font-size:12px; opacity:.78; margin-bottom:8px; }
+.note .headline{ font-weight:800; line-height:1.15; color: rgba(0,0,0,.82); }
+.note .tiny{
+  margin-top:8px;
+  font-size:12px;
+  opacity:.85;
+  color: rgba(0,0,0,.75);
+  display:flex;
+  justify-content:space-between;
+  gap:10px;
+}
+.hint{
+  position:fixed;
+  left:0; right:0; bottom:18px;
+  text-align:center;
+  font-size:12px;
+  color: rgba(255,255,255,.75);
+}
+
+/* Modal */
+.overlay{
+  position:fixed;
+  inset:0;
+  background: rgba(0,0,0,.55);
+  backdrop-filter: blur(6px);
+  display:none;
+  align-items:center;
+  justify-content:center;
+  padding:18px;
+}
+.overlay.open{ display:flex; }
+.modal{ width:min(720px, 96vw); border-radius: 22px; position:relative; }
+.close{
+  position:absolute;
+  right: 10px;
+  top: -46px;
+  background: rgba(255,255,255,.14);
+  color: var(--text);
+  border: 1px solid rgba(255,255,255,.20);
+  border-radius: 999px;
+  padding: 8px 12px;
+  cursor:pointer;
+}
+.modalNote{
+  border-radius: 18px;
+  padding: 18px 18px 14px;
+  box-shadow: 0 26px 90px rgba(0,0,0,.45);
+  border:1px solid rgba(0,0,0,.14);
+  transform: scale(.92);
+  opacity: 0;
+  animation: pop .16s ease forwards;
+}
+@keyframes pop{ to{ transform: scale(1); opacity: 1; } }
+
+.noteHeader{ display:flex; flex-direction:column; gap:8px; }
+.tag{
+  display:inline-flex; width:fit-content;
+  font-size:12px; padding:6px 10px; border-radius:999px;
+  background: rgba(0,0,0,.12);
+  color: rgba(0,0,0,.78);
+}
+#mTitle{ margin:0; font-size: 22px; letter-spacing:.2px; color: rgba(0,0,0,.86); }
+.noteBody{
+  margin-top: 12px;
+  font-size: 14px;
+  line-height: 1.55;
+  color: rgba(0,0,0,.82);
+  white-space: pre-wrap;
+}
+.noteFooter{
+  margin-top: 14px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+}
+.link{
+  display:inline-flex;
+  padding:8px 12px;
+  border-radius:999px;
+  background: rgba(255,255,255,.45);
+  border: 1px solid rgba(0,0,0,.10);
+  color: rgba(0,0,0,.82);
+  text-decoration:none;
+  font-weight:750;
+}
+.due{ font-size: 12px; color: rgba(0,0,0,.65); }
+
+@media (max-width: 820px){
+  .note{ width: 150px; min-height: 110px; }
+  .door{ top: 10%; height: 50%; width: 20%; }
+  .door-left{ left: 49%; }
+  .door-right{ left: 71%; }
+}
+.note.dragging{
+  cursor: grabbing;
+  box-shadow: 0 22px 70px rgba(0,0,0,.45);
+  filter: brightness(1.05);
+  z-index: 50;
+}
+
+/* Προαιρετικό: να μην "πιάνει" selection text στο drag */
+.note, .note *{
+  -webkit-user-select: none;
+  user-select: none;
+}
+
