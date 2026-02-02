@@ -2,25 +2,24 @@
 <html lang="el">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>Weekly Fridge</title>
-  <link rel="stylesheet" href="styles.css?v=7" />
+  <link rel="stylesheet" href="styles.css?v=12" />
 </head>
 
 <body>
   <div id="stage">
     <div class="topbar">
       <div class="weekLabel" id="weekLabel">—</div>
-      <div class="meta">Μόνο εσωτερικά</div>
+      <div class="meta">Εσωτερική χρήση</div>
     </div>
 
-    <!-- Αυτό είναι το layer που έχει ΑΚΡΙΒΩΣ τις διαστάσεις της εικόνας (contain 16:9).
-         Τα post-it μπαίνουν ΕΔΩ για να “μένουν πάνω στο ψυγείο” σε όλες τις οθόνες. -->
+    <!-- The "real image rect" (16:9 contain box). Notes live inside this. -->
     <div id="imageBox"></div>
 
-    <!-- Modal -->
+    <!-- Modal overlay -->
     <div id="overlay" aria-hidden="true">
-      <div id="modalNote">
+      <div id="modalNote" role="dialog" aria-modal="true">
         <button id="closeBtn" aria-label="Κλείσιμο">×</button>
 
         <div class="smallTag" id="mTag"></div>
@@ -35,9 +34,6 @@
     </div>
   </div>
 
-  <script src="app.js?v=7"></script>
+  <script src="app.js?v=12"></script>
 </body>
 </html>
-
-</html>
-
