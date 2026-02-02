@@ -1,15 +1,11 @@
 /* ================================
    Weekly Fridge – styles.css
-   Full page stage + free drag notes
-   Responsive / mobile friendly
+   Notes are positioned in #imageBox (16:9 contain rect)
 ================================ */
 
-/* Reset */
 *,
 *::before,
-*::after {
-  box-sizing: border-box;
-}
+*::after { box-sizing: border-box; }
 
 html, body {
   margin: 0;
@@ -17,65 +13,64 @@ html, body {
   height: 100%;
   font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
                Roboto, Helvetica, Arial, sans-serif;
-  background: #0f172a; /* fallback */
-  overflow: hidden;   /* important για free drag */
+  background: #0f172a;
 }
 
 /* ================================
-   STAGE (ολόκληρη η σελίδα)
+   STAGE
+   IMPORTANT: contain (not cover) so the fridge isn't cropped on mobile.
 ================================ */
 #stage {
   position: relative;
   width: 100vw;
   height: 100vh;
 
-  /* background εικόνα ψυγείου */
   background-image: url("fridge-bg-1920x1080.png");
-  background-size: cover;
+  background-size: contain;
   background-position: center;
   background-repeat: no-repeat;
+  background-color: #0f172a;
 
   user-select: none;
   overflow: hidden;
 }
 
-/* ================================
-   TOP BAR
-================================ */
+/* Top bar */
 .topbar {
   position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
+  top: 0; left: 0; right: 0;
   z-index: 50;
 
   display: flex;
   align-items: center;
   justify-content: space-between;
-
   padding: 14px 20px;
 
-  background: linear-gradient(
-    to bottom,
-    rgba(0,0,0,0.55),
-    rgba(0,0,0,0.0)
-  );
+  background: linear-gradient(to bottom, rgba(0,0,0,0.55), rgba(0,0,0,0));
   color: #fff;
 }
 
 .weekLabel {
-  font-weight: 800;
+  font-weight: 900;
   font-size: 16px;
   letter-spacing: 0.3px;
 }
-
 .topbar .meta {
   font-size: 13px;
-  opacity: 0.8;
+  opacity: 0.82;
 }
 
 /* ================================
-   POST-IT NOTE
+   IMAGE BOX (matches the contained image rect)
+================================ */
+#imageBox {
+  position: absolute;
+  /* left/top/width/height set dynamically by app.js */
+  pointer-events: none; /* notes are clickable, box isn't */
+}
+
+/* ================================
+   NOTE
 ================================ */
 .note {
   position: absolute;
@@ -95,12 +90,15 @@ html, body {
   transform: rotate(var(--rot, 0deg));
   transition: box-shadow 0.15s ease, transform 0.15s ease;
 
-  touch-action: none; /* ΣΗΜΑΝΤΙΚΟ για drag σε mobile */
+  touch-action: none; /* critical for mobile drag */
+  pointer-events: auto; /* override imageBox pointer-events:none */
 }
 
-.note:active {
-  cursor: grabbing;
+.note:hover {
+  transform: rotate(var(--rot, 0deg)) scale(1.03);
 }
+
+.note:active { cursor: grabbing; }
 
 .note.dragging {
   z-index: 1000;
@@ -109,40 +107,32 @@ html, body {
     inset 0 1px 0 rgba(255,255,255,0.45);
 }
 
-/* μικρό tag επάνω */
 .note .smallTag {
   font-size: 11px;
-  font-weight: 700;
+  font-weight: 800;
   margin-bottom: 6px;
   opacity: 0.85;
 }
 
-/* headline */
 .note .headline {
   font-size: 16px;
-  font-weight: 800;
+  font-weight: 900;
   line-height: 1.15;
   margin-bottom: 8px;
 }
 
-/* footer info */
 .note .tiny {
   display: flex;
   justify-content: space-between;
   gap: 8px;
 
   font-size: 12px;
-  font-weight: 600;
+  font-weight: 700;
   opacity: 0.85;
 }
 
-/* hover effect */
-.note:hover {
-  transform: rotate(var(--rot, 0deg)) scale(1.03);
-}
-
 /* ================================
-   MODAL OVERLAY
+   MODAL
 ================================ */
 #overlay {
   position: fixed;
@@ -160,19 +150,14 @@ html, body {
   pointer-events: none;
   transition: opacity 0.25s ease;
 }
-
 #overlay.open {
   opacity: 1;
   pointer-events: auto;
 }
 
-/* ================================
-   MODAL NOTE
-================================ */
 #modalNote {
   width: min(92vw, 420px);
   border-radius: 14px;
-
   padding: 22px 22px 18px 22px;
 
   box-shadow:
@@ -185,7 +170,7 @@ html, body {
 
 #modalNote .smallTag {
   font-size: 12px;
-  font-weight: 800;
+  font-weight: 900;
   margin-bottom: 8px;
 }
 
@@ -202,7 +187,6 @@ html, body {
   white-space: pre-wrap;
 }
 
-/* footer modal */
 .modalFooter {
   display: flex;
   align-items: center;
@@ -213,13 +197,13 @@ html, body {
 
 .modalFooter .due {
   font-size: 13px;
-  font-weight: 700;
+  font-weight: 800;
   opacity: 0.85;
 }
 
 .modalFooter a {
   font-size: 14px;
-  font-weight: 800;
+  font-weight: 900;
   color: #0f172a;
   text-decoration: none;
 
@@ -227,12 +211,10 @@ html, body {
   border-radius: 999px;
   background: rgba(255,255,255,0.6);
 }
-
 .modalFooter a:hover {
   background: rgba(255,255,255,0.8);
 }
 
-/* close button */
 #closeBtn {
   position: absolute;
   top: 12px;
@@ -241,7 +223,6 @@ html, body {
   width: 34px;
   height: 34px;
   border-radius: 50%;
-
   border: none;
   cursor: pointer;
 
@@ -249,36 +230,21 @@ html, body {
   font-size: 18px;
   font-weight: 900;
 }
-
 #closeBtn:hover {
   background: rgba(255,255,255,0.8);
 }
 
-/* ================================
-   RESPONSIVE TWEAKS
-================================ */
+/* Responsive tweaks */
 @media (max-width: 768px) {
   .note {
     width: 150px;
     min-height: 120px;
     padding: 12px;
   }
-
-  .note .headline {
-    font-size: 14px;
-  }
-
-  .topbar {
-    padding: 12px 14px;
-  }
-
-  .weekLabel {
-    font-size: 14px;
-  }
+  .note .headline { font-size: 14px; }
+  .topbar { padding: 12px 14px; }
+  .weekLabel { font-size: 14px; }
 }
-
 @media (max-width: 420px) {
-  .note {
-    width: 135px;
-  }
+  .note { width: 135px; }
 }
