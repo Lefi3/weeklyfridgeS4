@@ -1,10 +1,13 @@
 // ================================
-// Weekly Fridge - app.js (FULL PAGE DRAG)
-// Admin-only drag + Google Sheets CSV + JSON fallback
-// Positions are % of the full stage => responsive scaling on mobile
+// Weekly Fridge - app.js (LOCKED TO FRIDGE IMAGE)
+// Notes are positioned relative to the contained 16:9 image rect (1920x1080).
+// Works consistently across resize & mobile.
+// Google Sheet CSV supported (pubhtml/edit/export all ok).
+// Drag is ADMIN-only. Viewers cannot move notes.
 // ================================
 
 const stage = document.getElementById("stage");
+const imageBox = document.getElementById("imageBox");
 
 const overlay   = document.getElementById("overlay");
 const closeBtn  = document.getElementById("closeBtn");
@@ -17,13 +20,16 @@ const mLink  = document.getElementById("mLink");
 const mDue   = document.getElementById("mDue");
 const modalNote = document.getElementById("modalNote");
 
-// 1) Βάλε εδώ το Google Sheets "Publish to web" CSV link όταν είσαι έτοιμος.
-//    Αν μείνει κενό ("") θα διαβάζει από updates.json
-const SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRfr3ZWLi62xLMAztUuTQCxkXxukKdPRsiStB54AKzvTYiiqyZXke3k55IYdPyFYxI8zfdCoc3rHQzO/pub?output=csv";
+// ✅ Βάλε το Google Sheets link εδώ (μπορεί να είναι pubhtml ή output=csv ή export?format=csv).
+const SHEET_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRfr3ZWLi62xLMAztUuTQCxkXxukKdPRsiStB54AKzvTYiiqyZXke3k55IYdPyFYxI8zfdCoc3rHQzO/pubhtml";
 
-// 2) Admin mode (μόνο εσύ) - άλλαξε το secret
-const ADMIN_SECRET = "Alogomiga"; // άλλαξέ το σε κάτι πιο long όταν θες
+// Admin mode (μόνο εσύ)
+const ADMIN_SECRET = "Alogomiga";
 
+// Image aspect: 1920x1080
+const IMAGE_ASPECT = 1920 / 1080;
+
+// Background by type (category)
 const COLORS = {
   meeting: "#ffe88a",
   sales:   "#b7f7c7",
@@ -32,10 +38,22 @@ const COLORS = {
   fyi:     "#dcc7ff"
 };
 
-// Storage key για drag θέσεις
-const STORAGE_KEY = "weekly_fridge_layout_page_v1";
+// Accent by ID 1–8
+const ID_ACCENTS = {
+  "1": "#3B82F6",
+  "2": "#22C55E",
+  "3": "#A855F7",
+  "4": "#F97316",
+  "5": "#EF4444",
+  "6": "#06B6D4",
+  "7": "#EAB308",
+  "8": "#EC4899"
+};
 
-// Θα κρατάμε τα loaded data για export
+// IMPORTANT: viewers should NOT apply local overrides.
+// Admin can temporarily drag; use export to save back to sheet.
+const STORAGE_KEY = "weekly_fridge_admin_overrides_v1";
+
 let DATA = null;
 
 // --------------------
@@ -48,23 +66,24 @@ function isAdmin() {
 const ADMIN = isAdmin();
 
 // --------------------
-// LocalStorage helpers
+// LocalStorage overrides (ADMIN only)
 // --------------------
-function loadLayoutOverrides(){
+function loadOverrides(){
+  if(!ADMIN) return {};
   try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}"); }
   catch { return {}; }
 }
-
-function saveLayoutOverride(id, pos){
-  const overrides = loadLayoutOverrides();
-  overrides[id] = { pos };
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(overrides));
+function saveOverride(id, pos){
+  if(!ADMIN) return;
+  const o = loadOverrides();
+  o[id] = { pos };
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(o));
 }
-
 function applyOverrides(data){
-  const overrides = loadLayoutOverrides();
+  if(!ADMIN) return data; // viewers see ONLY sheet layout
+  const o = loadOverrides();
   const items = (data.items || []).map(it => {
-    const ov = overrides[it.id];
+    const ov = o[it.id];
     if(!ov) return it;
     return { ...it, pos: { ...(it.pos || {}), ...(ov.pos || {}) } };
   });
@@ -101,30 +120,87 @@ function closeModal(){
 }
 
 // --------------------
-// Utils
+// ImageBox layout (matches contained image rect)
+// --------------------
+function getContainedImageRect() {
+  const rect = stage.getBoundingClientRect();
+  const stageW = rect.width;
+  const stageH = rect.height;
+
+  // "contain": biggest 16:9 box that fits inside stage
+  let w = stageW;
+  let h = w / IMAGE_ASPECT;
+
+  if (h > stageH) {
+    h = stageH;
+    w = h * IMAGE_ASPECT;
+  }
+
+  const left = (stageW - w) / 2;
+  const top  = (stageH - h) / 2;
+
+  return { left, top, width: w, height: h };
+}
+
+function layoutImageBox(){
+  const r = getContainedImageRect();
+  imageBox.style.left = `${r.left}px`;
+  imageBox.style.top = `${r.top}px`;
+  imageBox.style.width = `${r.width}px`;
+  imageBox.style.height = `${r.height}px`;
+}
+
+window.addEventListener("resize", () => {
+  layoutImageBox();
+});
+
+// --------------------
+// Pointer to image percent (0..100 inside imageBox)
 // --------------------
 function clamp(n, min, max){ return Math.max(min, Math.min(max, n)); }
 
-// Full page (stage) percent: NO LIMITS (but we’ll keep a very soft clamp to avoid NaN)
-function pointerToStagePercent(e){
-  const rect = stage.getBoundingClientRect();
+function pointerToImagePercent(e){
+  const rect = imageBox.getBoundingClientRect();
   const px = e.clientX - rect.left;
   const py = e.clientY - rect.top;
-
   const x = (px / rect.width) * 100;
   const y = (py / rect.height) * 100;
-
-  // no "real" restriction; just avoid infinities if something weird happens
-  return {
-    x: clamp(x, -5000, 5000),
-    y: clamp(y, -5000, 5000)
-  };
+  return { x: clamp(x, 0, 100), y: clamp(y, 0, 100) };
 }
 
 // --------------------
-// CSV parsing (Google Sheets publish CSV)
+// Google Sheets URL normalization
 // --------------------
-function parseCSV(text) {
+function normalizeSheetUrl(url){
+  if(!url) return "";
+
+  // already CSV
+  if (url.includes("output=csv") || url.includes("format=csv")) return url;
+
+  // pubhtml -> pub?output=csv
+  if (url.includes("/pubhtml")) {
+    const base = url.replace("/pubhtml", "/pub");
+    return base + (base.includes("?") ? "&" : "?") + "output=csv";
+  }
+
+  // edit -> export?format=csv&gid=...
+  if (url.includes("/spreadsheets/d/") && url.includes("/edit")) {
+    const m = url.match(/\/spreadsheets\/d\/([^/]+)/);
+    const fileId = m ? m[1] : null;
+    if (!fileId) return url;
+
+    const u = new URL(url);
+    const gid = u.searchParams.get("gid") || (url.match(/#gid=(\d+)/)?.[1]) || "0";
+    return `https://docs.google.com/spreadsheets/d/${fileId}/export?format=csv&gid=${gid}`;
+  }
+
+  return url;
+}
+
+// --------------------
+// CSV parsing (supports ',' or ';', headers case-insensitive)
+// --------------------
+function parseCSV(text, delimiter = ",") {
   const rows = [];
   let cur = "", row = [], inQuotes = false;
 
@@ -135,7 +211,7 @@ function parseCSV(text) {
     if (ch === '"') {
       if (inQuotes && next === '"') { cur += '"'; i++; }
       else inQuotes = !inQuotes;
-    } else if (ch === ',' && !inQuotes) {
+    } else if (ch === delimiter && !inQuotes) {
       row.push(cur); cur = "";
     } else if ((ch === '\n' || ch === '\r') && !inQuotes) {
       if (cur.length || row.length) { row.push(cur); rows.push(row); }
@@ -149,54 +225,75 @@ function parseCSV(text) {
   return rows;
 }
 
-function csvToItems(csvText){
-  const rows = parseCSV(csvText);
-  const headers = (rows.shift() || []).map(h => (h || "").trim());
+function csvToData(csvText){
+  const firstLine = (csvText.split(/\r?\n/)[0] || "");
+  const delimiter = (firstLine.includes(";") && !firstLine.includes(",")) ? ";" : ",";
 
-  const idx = (name) => headers.indexOf(name);
-  const pick = (r, k) => (r[idx(k)] ?? "").trim();
-  const num  = (r, k, fallback=0) => {
+  const rows = parseCSV(csvText, delimiter);
+  const headersRaw = (rows.shift() || []);
+  const headers = headersRaw.map(h => (h || "").trim().toLowerCase());
+
+  const idx = (name) => headers.indexOf(name.toLowerCase());
+  const pick = (r, k) => {
+    const i = idx(k);
+    return i >= 0 ? (r[i] ?? "").trim() : "";
+  };
+  const num = (r, k, fallback=0) => {
     const v = parseFloat(pick(r, k).replace(",", "."));
     return Number.isFinite(v) ? v : fallback;
   };
 
-  return rows
+  let metaWeek = "";
+
+  const items = rows
     .filter(r => r.some(cell => (cell || "").trim() !== ""))
-    .map(r => ({
-      id: pick(r, "id"),
-      // door ignored now (free drag). Keep for compatibility:
-      door: pick(r, "door") || "left",
-      type: pick(r, "type") || "meeting",
-      tagLabel: pick(r, "tagLabel"),
-      headline: pick(r, "headline"),
-      title: pick(r, "title"),
-      short: pick(r, "short"),
-      due: pick(r, "due"),
-      link: pick(r, "link"),
-      body: (r[idx("body")] ?? "").replace(/\\n/g, "\n"),
-      // now x/y are stage% (whole page)
-      pos: { x: num(r,"x",50), y: num(r,"y",50), rot: num(r,"rot",0) }
-    }))
-    .filter(it => it.id);
+    .map(r => {
+      const id = pick(r, "id");
+      const item = {
+        id,
+        type: (pick(r, "type") || "meeting").toLowerCase(),
+        tagLabel: pick(r, "taglabel") || pick(r, "tagLabel"),
+        headline: pick(r, "headline"),
+        title: pick(r, "title"),
+        short: pick(r, "short"),
+        due: pick(r, "due"),
+        link: pick(r, "link"),
+        body: (pick(r, "body") || "").replace(/\\n/g, "\n"),
+        pos: { x: num(r, "x", 50), y: num(r, "y", 50), rot: num(r, "rot", 0) }
+      };
+
+      // optional meta row: id = meta_week
+      if (id === "meta_week") {
+        metaWeek = item.title || item.headline || item.body || "";
+      }
+
+      return item;
+    })
+    .filter(it => it.id && it.id !== "meta_week");
+
+  return { weekLabel: metaWeek || "ΕΒΔΟΜΑΔΑ", items };
 }
 
 // --------------------
-// Create Note element
+// Create note (positioned in imageBox)
 // --------------------
 function makeNote(item){
   const el = document.createElement("div");
   el.className = "note";
   el.tabIndex = 0;
-
   el.dataset.id = item.id || "";
 
+  // base bg from type
   el.style.background = COLORS[item.type] || "#ffe88a";
+
+  // accent by ID 1-8
+  const accent = ID_ACCENTS[item.id];
+  if (accent) el.style.borderLeft = `7px solid ${accent}`;
 
   const x = item.pos?.x ?? 50;
   const y = item.pos?.y ?? 50;
   const rot = item.pos?.rot ?? 0;
 
-  // IMPORTANT: left/top are % of stage -> responsive scaling
   el.style.left = `${x}%`;
   el.style.top  = `${y}%`;
   el.style.setProperty("--rot", `${rot}deg`);
@@ -212,65 +309,75 @@ function makeNote(item){
     </div>
   `;
 
-  // Admin-only drag
+  // badge #id for 1-8
+  if (accent) {
+    const badge = document.createElement("div");
+    badge.textContent = `#${item.id}`;
+    badge.style.cssText = `
+      position:absolute;
+      top:8px;
+      right:8px;
+      background:${accent};
+      color:white;
+      font-weight:900;
+      font-size:12px;
+      padding:2px 8px;
+      border-radius:999px;
+      box-shadow: 0 6px 14px rgba(0,0,0,.25);
+      pointer-events:none;
+    `;
+    el.appendChild(badge);
+  }
+
+  const open = () => openModal(item);
+
+  // ADMIN-only drag on imageBox coords
   if (ADMIN) {
     let dragging = false;
     let moved = false;
     let startX = 0, startY = 0;
 
     el.addEventListener("pointerdown", (e) => {
-      e.preventDefault();               // helps on touch/scroll
+      e.preventDefault();
       el.setPointerCapture(e.pointerId);
-
       dragging = true;
       moved = false;
       startX = e.clientX;
       startY = e.clientY;
-
       el.classList.add("dragging");
     });
 
     el.addEventListener("pointermove", (e) => {
       if(!dragging) return;
+      if(Math.abs(e.clientX - startX) > 4 || Math.abs(e.clientY - startY) > 4) moved = true;
 
-      if(Math.abs(e.clientX - startX) > 4 || Math.abs(e.clientY - startY) > 4){
-        moved = true;
-      }
-
-      const p = pointerToStagePercent(e);
+      const p = pointerToImagePercent(e);
       el.style.left = `${p.x}%`;
       el.style.top  = `${p.y}%`;
     });
 
     el.addEventListener("pointerup", (e) => {
       if(!dragging) return;
-
       dragging = false;
       el.classList.remove("dragging");
 
-      const p = pointerToStagePercent(e);
+      const p = pointerToImagePercent(e);
       const rotNow = item.pos?.rot ?? 0;
 
-      if (item.id) {
-        saveLayoutOverride(item.id, { x: p.x, y: p.y, rot: rotNow });
-      }
+      // save temporary override (ADMIN only)
+      saveOverride(item.id, { x: p.x, y: p.y, rot: rotNow });
 
-      // click (without drag) -> open
-      if(!moved){
-        openModal(item);
-      }
+      if(!moved) open();
     });
-
   } else {
-    // viewers: click only
-    el.addEventListener("click", () => openModal(item));
+    el.addEventListener("click", open);
   }
 
   // keyboard open
   el.addEventListener("keydown", (e) => {
     if(e.key === "Enter" || e.key === " "){
       e.preventDefault();
-      openModal(item);
+      open();
     }
   });
 
@@ -278,30 +385,52 @@ function makeNote(item){
 }
 
 // --------------------
-// Export merged layout to clipboard (Ctrl/Cmd+E)
+// Export positions to clipboard (CSV + JSON) - ADMIN only
 // --------------------
-function exportLayoutToClipboard(){
+function exportPositions(){
   if(!DATA) return;
-  const merged = JSON.stringify(DATA, null, 2);
-  navigator.clipboard.writeText(merged)
-    .then(() => alert("✅ Αντιγράφηκε το merged JSON στο clipboard (με τις νέες θέσεις)."))
+
+  // JSON
+  const json = JSON.stringify(DATA, null, 2);
+
+  // CSV rows (easy paste back to sheet)
+  const lines = ["id,x,y,rot"];
+  for (const it of (DATA.items || [])) {
+    const x = (it.pos?.x ?? 50).toFixed(3);
+    const y = (it.pos?.y ?? 50).toFixed(3);
+    const r = (it.pos?.rot ?? 0).toFixed(3);
+    lines.push(`${it.id},${x},${y},${r}`);
+  }
+  const csv = lines.join("\n");
+
+  const combined = `/* CSV (paste in sheet): */\n${csv}\n\n/* JSON (full): */\n${json}\n`;
+
+  navigator.clipboard.writeText(combined)
+    .then(() => alert("✅ Αντιγράφηκαν θέσεις (CSV + JSON) στο clipboard."))
     .catch(() => alert("❌ Δεν μπόρεσα να γράψω στο clipboard."));
 }
 
 // --------------------
-// Load data (CSV or JSON), apply overrides, render
+// Load + render
 // --------------------
 async function init(){
+  layoutImageBox();
+
   let data;
 
   try {
-    if (SHEET_CSV_URL) {
-      const res = await fetch(SHEET_CSV_URL, { cache: "no-store" });
-      const csv = await res.text();
-      data = {
-        weekLabel: "ΕΒΔΟΜΑΔΑ (από Sheet)",
-        items: csvToItems(csv)
-      };
+    if (SHEET_URL) {
+      const url = normalizeSheetUrl(SHEET_URL);
+      const res = await fetch(url, { cache: "no-store" });
+      const text = await res.text();
+
+      // basic HTML detection
+      const t = text.trim().slice(0, 40).toLowerCase();
+      if (t.startsWith("<!doctype") || t.startsWith("<html")) {
+        console.warn("Fetched HTML instead of CSV. Check SHEET_URL publish settings.", url);
+      }
+
+      data = csvToData(text);
     } else {
       const res = await fetch("updates.json", { cache: "no-store" });
       data = await res.json();
@@ -311,30 +440,32 @@ async function init(){
     data = { weekLabel: "—", items: [] };
   }
 
-  // Apply admin drag overrides
+  // Apply overrides ONLY in admin mode
   data = applyOverrides(data);
   DATA = data;
 
   weekLabel.textContent = data.weekLabel ?? "—";
 
-  // Remove all old notes (we only remove .note elements, not the rest of the UI)
-  stage.querySelectorAll(".note").forEach(n => n.remove());
+  // Clear previous notes
+  imageBox.querySelectorAll(".note").forEach(n => n.remove());
 
+  // Render notes into imageBox (stable on fridge)
   (data.items ?? []).forEach((item) => {
     const note = makeNote(item);
-    stage.appendChild(note);
+    imageBox.appendChild(note);
   });
 
-  // Admin helper: Ctrl/Cmd+E export merged JSON
+  // Admin helper: Ctrl/Cmd+E export positions
   document.addEventListener("keydown", (e) => {
+    if (!ADMIN) return;
     if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "e") {
       e.preventDefault();
-      exportLayoutToClipboard();
+      exportPositions();
     }
   });
 
   if (ADMIN) {
-    console.log("ADMIN MODE ON ✅ (free-drag full page)");
+    console.log("ADMIN MODE ON ✅ (positions locked to fridge image)");
   }
 }
 
@@ -347,5 +478,3 @@ document.addEventListener("keydown", (e) => { if(e.key === "Escape") closeModal(
 
 // Start
 init();
-
-
