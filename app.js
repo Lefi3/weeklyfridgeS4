@@ -24,7 +24,7 @@ const mDue   = document.getElementById("mDue");
 const modalNote = document.getElementById("modalNote");
 
 // ✅ Your Google Sheet URL (pubhtml or csv/export ok)
-const SHEET_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRfr3ZWLi62xLMAztUuTQCxkXxukKdPRsiStB54AKzvTYiiqyZXke3k55IYdPyFYxI8zfdCoc3rHQzO/pubhtml";
+const SHEET_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRfr3ZWLi62xLMAztUuTQCxkXxukKdPRsiStB54AKzvTYiiqyZXke3k55IYdPyFYxI8zfdCoc3rHQzO/pub?output=csv";
 
 // ✅ Admin secret
 const ADMIN_SECRET = "Alogomiga";
