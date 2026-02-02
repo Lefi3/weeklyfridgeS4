@@ -2,51 +2,42 @@
 <html lang="el">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Το Ψυγείο της Εβδομάδας</title>
-  <link rel="stylesheet" href="styles.css" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Weekly Fridge</title>
+  <link rel="stylesheet" href="styles.css?v=7" />
 </head>
+
 <body>
-  <main class="stage" id="stage" aria-label="Το Ψυγείο της Εβδομάδας">
-    <header class="topbar">
-      <div class="brand">
-        <span class="dot"></span>
-        <div>
-          <div class="title">Το Ψυγείο της Εβδομάδας</div>
-          <div class="subtitle" id="weekLabel">—</div>
-        </div>
-      </div>
-      <div class="meta">
-        <span class="pill">Εσωτερική χρήση</span>
-      </div>
-    </header>
+  <div id="stage">
+    <div class="topbar">
+      <div class="weekLabel" id="weekLabel">—</div>
+      <div class="meta">Μόνο εσωτερικά</div>
+    </div>
 
-    <section class="fridgeArea" aria-label="Post-it πάνω στο ψυγείο">
-      <div class="door door-left" id="doorLeft"></div>
-      <div class="door door-right" id="doorRight"></div>
-    </section>
+    <!-- Αυτό είναι το layer που έχει ΑΚΡΙΒΩΣ τις διαστάσεις της εικόνας (contain 16:9).
+         Τα post-it μπαίνουν ΕΔΩ για να “μένουν πάνω στο ψυγείο” σε όλες τις οθόνες. -->
+    <div id="imageBox"></div>
 
-    <div class="hint">Tip: κλικ σε post-it για zoom • Esc για κλείσιμο</div>
-  </main>
+    <!-- Modal -->
+    <div id="overlay" aria-hidden="true">
+      <div id="modalNote">
+        <button id="closeBtn" aria-label="Κλείσιμο">×</button>
 
-  <div class="overlay" id="overlay" aria-hidden="true">
-    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="mTitle">
-      <button class="close" id="closeBtn" aria-label="Κλείσιμο">✕</button>
+        <div class="smallTag" id="mTag"></div>
+        <h2 id="mTitle"></h2>
+        <p id="mBody"></p>
 
-      <div class="modalNote" id="modalNote">
-        <div class="noteHeader">
-          <div class="tag" id="mTag"></div>
-          <h2 id="mTitle"></h2>
-        </div>
-        <div class="noteBody" id="mBody"></div>
-        <div class="noteFooter">
-          <a class="link" id="mLink" target="_blank" rel="noopener">Άνοιγμα link</a>
-          <span class="due" id="mDue"></span>
+        <div class="modalFooter">
+          <div class="due" id="mDue"></div>
+          <a id="mLink" href="#" target="_blank" rel="noreferrer">Άνοιγμα link</a>
         </div>
       </div>
     </div>
   </div>
 
-  <script src="app.js"></script>
+  <script src="app.js?v=7"></script>
 </body>
 </html>
+
+</html>
+
