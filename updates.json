@@ -1,8 +1,4 @@
 {
   "weekLabel": "ΕΒΔΟΜΑΔΑ",
-  "items": [
-    { "id":"1", "type":"meeting", "tagLabel":"🟨 Meetings", "headline":"Post-it 1", "title":"Post-it 1", "short":"", "due":"", "link":"", "body":"", "pos":{"x":25,"y":25,"rot":-2} },
-    { "id":"2", "type":"sales",   "tagLabel":"🟩 Ακίνητα",  "headline":"Post-it 2", "title":"Post-it 2", "short":"", "due":"", "link":"", "body":"", "pos":{"x":35,"y":35,"rot":1} },
-    { "id":"3", "type":"update",  "tagLabel":"🟦 Updates",  "headline":"Post-it 3", "title":"Post-it 3", "short":"", "due":"", "link":"", "body":"", "pos":{"x":45,"y":45,"rot":-1} }
-  ]
-}
+ }
+
