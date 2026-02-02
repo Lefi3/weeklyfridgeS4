@@ -1,9 +1,12 @@
 // ================================
-// Weekly Fridge - app.js (LOCKED TO FRIDGE IMAGE)
-// Notes are positioned relative to the contained 16:9 image rect (1920x1080).
-// Works consistently across resize & mobile.
-// Google Sheet CSV supported (pubhtml/edit/export all ok).
-// Drag is ADMIN-only. Viewers cannot move notes.
+// Weekly Fridge - app.js
+// - Fridge image is 1920x1080 (16:9) shown as CONTAIN
+// - Notes are positioned relative to the contained image rect (imageBox)
+// - iOS Safari fixes: dvh + visualViewport relayout
+// - Notes scale with the fridge size (--noteScale)
+// - Google Sheet (pubhtml/edit/export) normalized to CSV
+// - CSV supports ',' or ';' and headers case-insensitive
+// - ID accents for 1-8
 // ================================
 
 const stage = document.getElementById("stage");
@@ -20,16 +23,22 @@ const mLink  = document.getElementById("mLink");
 const mDue   = document.getElementById("mDue");
 const modalNote = document.getElementById("modalNote");
 
-// ✅ Βάλε το Google Sheets link εδώ (μπορεί να είναι pubhtml ή output=csv ή export?format=csv).
+// ✅ Your Google Sheet URL (pubhtml or csv/export ok)
 const SHEET_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRfr3ZWLi62xLMAztUuTQCxkXxukKdPRsiStB54AKzvTYiiqyZXke3k55IYdPyFYxI8zfdCoc3rHQzO/pubhtml";
 
-// Admin mode (μόνο εσύ)
+// ✅ Admin secret
 const ADMIN_SECRET = "Alogomiga";
 
-// Image aspect: 1920x1080
+// Fridge image aspect (1920x1080)
 const IMAGE_ASPECT = 1920 / 1080;
 
-// Background by type (category)
+// Note scaling reference
+const DESIGN_WIDTH = 1920;    // reference width for scale=1
+const MOBILE_MULT  = 0.82;    // extra shrink on phones
+const MIN_SCALE    = 0.46;
+const MAX_SCALE    = 1.00;
+
+// Base bg by type
 const COLORS = {
   meeting: "#ffe88a",
   sales:   "#b7f7c7",
@@ -50,24 +59,27 @@ const ID_ACCENTS = {
   "8": "#EC4899"
 };
 
-// IMPORTANT: viewers should NOT apply local overrides.
-// Admin can temporarily drag; use export to save back to sheet.
-const STORAGE_KEY = "weekly_fridge_admin_overrides_v1";
+// Admin-only temporary overrides
+const STORAGE_KEY = "weekly_fridge_admin_overrides_v2";
 
 let DATA = null;
 
 // --------------------
-// Admin check
+// Helpers
 // --------------------
+function clamp(n, min, max){ return Math.max(min, Math.min(max, n)); }
+
+function isPhone() {
+  return window.matchMedia("(max-width: 520px)").matches;
+}
+
 function isAdmin() {
   const url = new URL(window.location.href);
   return url.searchParams.get("admin") === "1" && url.searchParams.get("key") === ADMIN_SECRET;
 }
 const ADMIN = isAdmin();
 
-// --------------------
-// LocalStorage overrides (ADMIN only)
-// --------------------
+// Admin overrides
 function loadOverrides(){
   if(!ADMIN) return {};
   try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}"); }
@@ -105,7 +117,9 @@ function openModal(item){
 
   if(item.link){
     mLink.style.display = "inline-flex";
-    mLink.href = item.link;
+    // auto-fix missing protocol for meet links etc
+    const href = item.link.startsWith("http") ? item.link : `https://${item.link}`;
+    mLink.href = href;
   } else {
     mLink.style.display = "none";
     mLink.removeAttribute("href");
@@ -119,15 +133,18 @@ function closeModal(){
   overlay.setAttribute("aria-hidden", "true");
 }
 
+closeBtn.addEventListener("click", closeModal);
+overlay.addEventListener("click", (e) => { if(e.target === overlay) closeModal(); });
+document.addEventListener("keydown", (e) => { if(e.key === "Escape") closeModal(); });
+
 // --------------------
-// ImageBox layout (matches contained image rect)
+// Layout: imageBox matches "contain" 16:9 rect
 // --------------------
 function getContainedImageRect() {
   const rect = stage.getBoundingClientRect();
   const stageW = rect.width;
   const stageH = rect.height;
 
-  // "contain": biggest 16:9 box that fits inside stage
   let w = stageW;
   let h = w / IMAGE_ASPECT;
 
@@ -150,40 +167,64 @@ function layoutImageBox(){
   imageBox.style.height = `${r.height}px`;
 }
 
-window.addEventListener("resize", () => {
+function updateNoteScale() {
+  const rect = imageBox.getBoundingClientRect();
+  if (!rect.width) return;
+
+  let s = rect.width / DESIGN_WIDTH;
+  if (isPhone()) s *= MOBILE_MULT;
+  s = clamp(s, MIN_SCALE, MAX_SCALE);
+
+  document.documentElement.style.setProperty("--noteScale", String(s));
+}
+
+// Schedule relayout (iOS-friendly)
+let _relayoutRaf = 0;
+function relayoutNow(){
   layoutImageBox();
-});
+  updateNoteScale();
+}
+function scheduleRelayout(){
+  cancelAnimationFrame(_relayoutRaf);
+  _relayoutRaf = requestAnimationFrame(relayoutNow);
+}
+
+// Events for iOS Safari / address bar changes
+window.addEventListener("resize", scheduleRelayout);
+window.addEventListener("orientationchange", () => setTimeout(scheduleRelayout, 60));
+
+if (window.visualViewport) {
+  window.visualViewport.addEventListener("resize", scheduleRelayout);
+  window.visualViewport.addEventListener("scroll", scheduleRelayout);
+}
 
 // --------------------
-// Pointer to image percent (0..100 inside imageBox)
+// Pointer to imageBox percent
 // --------------------
-function clamp(n, min, max){ return Math.max(min, Math.min(max, n)); }
-
 function pointerToImagePercent(e){
   const rect = imageBox.getBoundingClientRect();
   const px = e.clientX - rect.left;
   const py = e.clientY - rect.top;
+
   const x = (px / rect.width) * 100;
   const y = (py / rect.height) * 100;
+
   return { x: clamp(x, 0, 100), y: clamp(y, 0, 100) };
 }
 
 // --------------------
-// Google Sheets URL normalization
+// Google Sheet URL normalize -> CSV
 // --------------------
 function normalizeSheetUrl(url){
   if(!url) return "";
 
-  // already CSV
   if (url.includes("output=csv") || url.includes("format=csv")) return url;
 
-  // pubhtml -> pub?output=csv
   if (url.includes("/pubhtml")) {
     const base = url.replace("/pubhtml", "/pub");
     return base + (base.includes("?") ? "&" : "?") + "output=csv";
   }
 
-  // edit -> export?format=csv&gid=...
   if (url.includes("/spreadsheets/d/") && url.includes("/edit")) {
     const m = url.match(/\/spreadsheets\/d\/([^/]+)/);
     const fileId = m ? m[1] : null;
@@ -198,7 +239,7 @@ function normalizeSheetUrl(url){
 }
 
 // --------------------
-// CSV parsing (supports ',' or ';', headers case-insensitive)
+// CSV parsing (',' or ';') + headers case-insensitive
 // --------------------
 function parseCSV(text, delimiter = ",") {
   const rows = [];
@@ -262,7 +303,6 @@ function csvToData(csvText){
         pos: { x: num(r, "x", 50), y: num(r, "y", 50), rot: num(r, "rot", 0) }
       };
 
-      // optional meta row: id = meta_week
       if (id === "meta_week") {
         metaWeek = item.title || item.headline || item.body || "";
       }
@@ -275,18 +315,19 @@ function csvToData(csvText){
 }
 
 // --------------------
-// Create note (positioned in imageBox)
+// Render note
 // --------------------
 function makeNote(item){
   const el = document.createElement("div");
   el.className = "note";
   el.tabIndex = 0;
   el.dataset.id = item.id || "";
+  el.dataset.rot = String(item.pos?.rot ?? 0);
 
-  // base bg from type
+  // background color by type
   el.style.background = COLORS[item.type] || "#ffe88a";
 
-  // accent by ID 1-8
+  // accent
   const accent = ID_ACCENTS[item.id];
   if (accent) el.style.borderLeft = `7px solid ${accent}`;
 
@@ -294,11 +335,12 @@ function makeNote(item){
   const y = item.pos?.y ?? 50;
   const rot = item.pos?.rot ?? 0;
 
+  // Position inside imageBox (percent of image)
   el.style.left = `${x}%`;
   el.style.top  = `${y}%`;
-  el.style.setProperty("--rot", `${rot}deg`);
-  el.style.transformOrigin = "center";
-  el.style.translate = "-50% -50%";
+
+  // Transform: translate + rotate (scale is global via CSS)
+  el.style.transform = `translate(-50%, -50%) rotate(${rot}deg)`;
 
   el.innerHTML = `
     <div class="smallTag">${item.tagLabel ?? ""}</div>
@@ -309,7 +351,7 @@ function makeNote(item){
     </div>
   `;
 
-  // badge #id for 1-8
+  // Badge
   if (accent) {
     const badge = document.createElement("div");
     badge.textContent = `#${item.id}`;
@@ -331,7 +373,7 @@ function makeNote(item){
 
   const open = () => openModal(item);
 
-  // ADMIN-only drag on imageBox coords
+  // Admin-only drag (inside imageBox coords)
   if (ADMIN) {
     let dragging = false;
     let moved = false;
@@ -362,13 +404,14 @@ function makeNote(item){
       el.classList.remove("dragging");
 
       const p = pointerToImagePercent(e);
-      const rotNow = item.pos?.rot ?? 0;
+      const rotNow = parseFloat(el.dataset.rot || "0") || 0;
 
-      // save temporary override (ADMIN only)
+      // store temporary override (admin only)
       saveOverride(item.id, { x: p.x, y: p.y, rot: rotNow });
 
       if(!moved) open();
     });
+
   } else {
     el.addEventListener("click", open);
   }
@@ -384,37 +427,34 @@ function makeNote(item){
   return el;
 }
 
-// --------------------
-// Export positions to clipboard (CSV + JSON) - ADMIN only
-// --------------------
+// Export (admin): CSV + JSON to clipboard
 function exportPositions(){
   if(!DATA) return;
 
-  // JSON
-  const json = JSON.stringify(DATA, null, 2);
-
-  // CSV rows (easy paste back to sheet)
   const lines = ["id,x,y,rot"];
   for (const it of (DATA.items || [])) {
-    const x = (it.pos?.x ?? 50).toFixed(3);
-    const y = (it.pos?.y ?? 50).toFixed(3);
-    const r = (it.pos?.rot ?? 0).toFixed(3);
+    const x = (it.pos?.x ?? 50).toFixed(2);
+    const y = (it.pos?.y ?? 50).toFixed(2);
+    const r = (it.pos?.rot ?? 0).toFixed(2);
     lines.push(`${it.id},${x},${y},${r}`);
   }
   const csv = lines.join("\n");
+  const json = JSON.stringify(DATA, null, 2);
 
-  const combined = `/* CSV (paste in sheet): */\n${csv}\n\n/* JSON (full): */\n${json}\n`;
-
+  const combined = `/* CSV (paste in sheet): */\n${csv}\n\n/* JSON (backup): */\n${json}\n`;
   navigator.clipboard.writeText(combined)
     .then(() => alert("✅ Αντιγράφηκαν θέσεις (CSV + JSON) στο clipboard."))
     .catch(() => alert("❌ Δεν μπόρεσα να γράψω στο clipboard."));
 }
 
 // --------------------
-// Load + render
+// Init
 // --------------------
 async function init(){
-  layoutImageBox();
+  // iOS often stabilizes viewport after a moment
+  scheduleRelayout();
+  setTimeout(scheduleRelayout, 80);
+  setTimeout(scheduleRelayout, 250);
 
   let data;
 
@@ -424,10 +464,10 @@ async function init(){
       const res = await fetch(url, { cache: "no-store" });
       const text = await res.text();
 
-      // basic HTML detection
-      const t = text.trim().slice(0, 40).toLowerCase();
-      if (t.startsWith("<!doctype") || t.startsWith("<html")) {
-        console.warn("Fetched HTML instead of CSV. Check SHEET_URL publish settings.", url);
+      // basic HTML detection (wrong link)
+      const head = text.trim().slice(0, 50).toLowerCase();
+      if (head.startsWith("<!doctype") || head.startsWith("<html")) {
+        console.warn("Fetched HTML instead of CSV. Check publish settings.", url);
       }
 
       data = csvToData(text);
@@ -440,22 +480,25 @@ async function init(){
     data = { weekLabel: "—", items: [] };
   }
 
-  // Apply overrides ONLY in admin mode
+  // Apply overrides only if admin
   data = applyOverrides(data);
   DATA = data;
 
   weekLabel.textContent = data.weekLabel ?? "—";
 
-  // Clear previous notes
+  // Clear notes
   imageBox.querySelectorAll(".note").forEach(n => n.remove());
 
-  // Render notes into imageBox (stable on fridge)
+  // Render inside imageBox
   (data.items ?? []).forEach((item) => {
     const note = makeNote(item);
     imageBox.appendChild(note);
   });
 
-  // Admin helper: Ctrl/Cmd+E export positions
+  // Set scale after notes exist (safe)
+  scheduleRelayout();
+
+  // Admin export: Ctrl/Cmd+E
   document.addEventListener("keydown", (e) => {
     if (!ADMIN) return;
     if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "e") {
@@ -464,17 +507,7 @@ async function init(){
     }
   });
 
-  if (ADMIN) {
-    console.log("ADMIN MODE ON ✅ (positions locked to fridge image)");
-  }
+  if (ADMIN) console.log("ADMIN MODE ON ✅");
 }
 
-// --------------------
-// Global listeners
-// --------------------
-closeBtn.addEventListener("click", closeModal);
-overlay.addEventListener("click", (e) => { if(e.target === overlay) closeModal(); });
-document.addEventListener("keydown", (e) => { if(e.key === "Escape") closeModal(); });
-
-// Start
 init();
