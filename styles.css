@@ -248,9 +248,13 @@ html, body {
 }
 .wordBadge{
   position: absolute;
-  left: 60%;
+  left: auto !important;
+  right: 6% !important;   /* όσο θες: 2%, 4%, 8% κλπ */
   top: 10%;
-  translate: -50% -50%;
+
+  translate: 0 -50%;      /* ΠΡΟΣΟΧΗ: όχι -50% στο X */
+}
+
 
   width: 280px;
   padding: 14px 16px;
@@ -294,6 +298,7 @@ html, body {
   font-weight: 700;
   opacity: 0.85;
 }
+
 
 
 
