@@ -29,6 +29,12 @@ const SHEET_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRfr3ZWLi62xL
 // ✅ Admin secret
 const ADMIN_SECRET = "Alogomiga";
 
+const WORD_OF_WEEK_DEFAULT = {
+  title: "Η λέξη της εβδομάδας",
+  word: "Exclusivity",
+};
+
+
 // Fridge image aspect (1920x1080)
 const IMAGE_ASPECT = 1920 / 1080;
 
@@ -494,6 +500,28 @@ async function init(){
 
   weekLabel.textContent = data.weekLabel ?? "—";
 
+  const wordBadge = document.getElementById("wordBadge");
+
+const wow = data.wordOfWeek || WORD_OF_WEEK_DEFAULT;
+
+wordBadge.innerHTML = `
+  <div class="kicker">${wow.title || "Η λέξη της εβδομάδας"}</div>
+  <div class="word">${wow.word || ""}</div>
+  <div class="sub">${wow.sub || ""}</div>
+`;
+
+wordBadge.addEventListener("click", () => {
+  openModal({
+    type: "fyi",
+    tagLabel: "📌 Word of the Week",
+    title: wow.word || "Η λέξη της εβδομάδας",
+    body: wow.body || wow.sub || "",
+    link: wow.link || "",
+    due: ""
+  });
+});
+
+
   // Clear notes
   imageBox.querySelectorAll(".note").forEach(n => n.remove());
 
@@ -519,4 +547,5 @@ async function init(){
 }
 
 init();
+
 
