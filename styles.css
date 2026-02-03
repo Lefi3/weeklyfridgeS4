@@ -246,3 +246,52 @@ html, body {
   .note .smallTag{ font-size: 10px; }
   .note .tiny{ font-size: 11px; }
 }
+.wordBadge{
+  position: absolute;
+  left: 16%;
+  top: 10%;
+  translate: -50% -50%;
+
+  width: 280px;
+  padding: 14px 16px;
+  border-radius: 16px;
+
+  background: rgba(255,255,255,0.72);
+  backdrop-filter: blur(10px);
+
+  box-shadow:
+    0 18px 45px rgba(0,0,0,0.25),
+    inset 0 1px 0 rgba(255,255,255,0.55);
+
+  color: #0f172a;
+
+  pointer-events: auto;
+  cursor: pointer;
+
+  border: 1px solid rgba(255,255,255,0.35);
+
+  scale: var(--noteScale);
+  transform-origin: center;
+}
+
+.wordBadge .kicker{
+  font-size: 12px;
+  font-weight: 900;
+  opacity: 0.75;
+  letter-spacing: .2px;
+  margin-bottom: 6px;
+}
+
+.wordBadge .word{
+  font-size: 20px;
+  font-weight: 1000;
+  line-height: 1.1;
+}
+
+.wordBadge .sub{
+  margin-top: 8px;
+  font-size: 13px;
+  font-weight: 700;
+  opacity: 0.85;
+}
+
