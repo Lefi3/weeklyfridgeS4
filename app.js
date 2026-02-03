@@ -169,14 +169,22 @@ function layoutImageBox(){
 
 function updateNoteScale() {
   const rect = imageBox.getBoundingClientRect();
-  if (!rect.width) return;
+  if (!rect.width || !rect.height) return;
 
-  let s = rect.width / DESIGN_WIDTH;
-  if (isPhone()) s *= MOBILE_MULT;
-  s = clamp(s, MIN_SCALE, MAX_SCALE);
+  // ✅ σωστό: min(width/1920, height/1080)
+  let s = Math.min(rect.width / 1920, rect.height / 1080);
+
+  // λίγο extra shrink σε πολύ μικρά παράθυρα (desktop + mobile)
+  if (rect.width < 900) s *= 0.92;
+  if (rect.width < 700) s *= 0.86;
+  if (rect.width < 520) s *= 0.82;
+
+  // πιο χαμηλό min για να μη γίνεται “τούβλο” σε μικρό viewport
+  s = clamp(s, 0.28, 1.0);
 
   document.documentElement.style.setProperty("--noteScale", String(s));
 }
+
 
 // Schedule relayout (iOS-friendly)
 let _relayoutRaf = 0;
@@ -511,3 +519,4 @@ async function init(){
 }
 
 init();
+
